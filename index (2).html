@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gigi Berkilat, Senyum Pikat!</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #a8edd1 0%, #fed6e3 100%);
+      font-family: 'Comic Sans MS', 'Chalkboard SE', 'Fredoka One', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      background: #fff;
+      border: 8px solid #4a90e2;
+      border-radius: 24px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Motif Batik Header */
+    .batik-header {
+      width: 100%;
+      height: 60px;
+      background-color: #e74c3c;
+      background-image: radial-gradient(#f1c40f 15%, transparent 16%), radial-gradient(#f1c40f 15%, transparent 16%);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      border-bottom: 4px solid #f1c40f;
+    }
+
+    canvas {
+      background: #fffbf0;
+      cursor: none; /* Sembunyikan kursor asal untuk guna berus gigi */
+    }
+
+    /* UI Overlay Control */
+    #ui-layer {
+      position: absolute;
+      top: 70px;
+      width: 100%;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .status-card {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: 3px solid #f39c12;
+      font-size: 18px;
+      font-weight: bold;
+      color: #2c3e50;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      width: 200px;
+      height: 24px;
+      background-color: #e0e0e0;
+      border-radius: 12px;
+      border: 2px solid #2980b9;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71, #27ae60);
+      transition: width 0.2s;
+    }
+
+    /* Start / Win Screen Modal */
+    .modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+      z-index: 10;
+    }
+
+    .modal-card {
+      background: #fff;
+      color: #333;
+      padding: 30px;
+      border-radius: 20px;
+      border: 6px solid #f1c40f;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .btn {
+      background: #2ecc71;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 5px 0 #27ae60;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    .btn:hover {
+      background: #27ae60;
+      transform: scale(1.05);
+    }
+
+    .btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #27ae60;
+    }
+
+    /* Motif Bunga Raya Sisi */
+    .flower-decor {
+      position: absolute;
+      bottom: 10px;
+      font-size: 40px;
+      pointer-events: none;
+    }
+    .flower-left { left: 15px; }
+    .flower-right { right: 15px; }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <div class="batik-header">
+    ✨ GIGI BERKILAT, SENYUM PIKAT ✨
+  </div>
+
+  <div id="ui-layer">
+    <div class="status-card">Kebersihan Gigi:
+      <div class="progress-container">
+        <div id="progress" class="progress-bar"></div>
+      </div>
+    </div>
+    <div class="status-card" id="instruction">Gosok kotoran pada gigi! 🪥</div>
+  </div>
+
+  <canvas id="gameCanvas" width="800" height="520"></canvas>
+
+  <div class="flower-decor flower-left">🌺</div>
+  <div class="flower-decor flower-right">🌺</div>
+
+  <!-- Start Screen -->
+  <div id="start-modal" class="modal">
+    <div class="modal-card">
+      <h1 style="color: #e74c3c; margin-top:0;">Selamat Datang!</h1>
+      <p style="font-size: 18px; line-height: 1.5;">
+        Mari belajar memberus gigi dengan betul!<br>
+        Gunakan <b>Berus Gigi Simulasi</b> untuk membersihkan kotoran kapas/busa pada mulut ini.
+      </p>
+      <button class="btn" onclick="startGame()">MULA MEMBERUS 🪥</button>
+    </div>
+  </div>
+
+  <!-- Win Screen -->
+  <div id="win-modal" class="modal" style="display: none;">
+    <div class="modal-card">
+      <h1 style="color: #2ecc71; margin-top:0;">TAHNIAH! 🎉</h1>
+      <p style="font-size: 20px; line-height: 1.5;">
+        Gigi kini berseri, berkilat dan bersih!<br>
+        Senyuman anda sangat memikat! 😁✨
+      </p>
+      <button class="btn" onclick="resetGame()">MAIN LAGI 🔄</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Game States
+  let isBrushing = false;
+  let dirtParticles = [];
+  let sparkles = [];
+  let totalDirt = 0;
+  let cleanedDirt = 0;
+  let mouse = { x: -100, y: -100, prevX: -100, prevY: -100 };
+  let audioCtx = null;
+  let bgmInterval = null;
+
+  // Inisialisasi Audio (Synthesizer Muzik Melayu + SFX)
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  // Suara Latar BM (Text to Speech)
+  function speakBM(text) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Hentikan sebutan terdahulu
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ms-MY';
+      utterance.rate = 0.9; // Kelajuan sederhana ceria
+      utterance.pitch = 1.2; // Pitch sedikit tinggi untuk elemen kanak-kanak
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  // Kesan Bunyi (SFX)
+  function playSound(type) {
+    if (!audioCtx) return;
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'brush') {
+      // Bunyi Berus (White noise short blast)
+      const bufferSize = audioCtx.sampleRate * 0.05;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+      noise.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+      noise.start();
+    } else if (type === 'sparkle') {
+      // Bunyi Kilauan
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'win') {
+      // Fanfare Kemenangan Melayu (Skala Pentatonik)
+      const notes = [261.63, 329.63, 392.00, 440.00, 523.25]; // C, E, G, A, C
+      notes.forEach((freq, index) => {
+        setTimeout(() => {
+          const noteOsc = audioCtx.createOscillator();
+          const noteGain = audioCtx.createGain();
+          noteOsc.type = 'triangle';
+          noteOsc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          noteGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+          noteOsc.connect(noteGain);
+          noteGain.connect(audioCtx.destination);
+          noteOsc.start();
+          noteOsc.stop(audioCtx.currentTime + 0.3);
+        }, index * 120);
+      });
+    }
+  }
+
+  // Muzik Latar Tradisional Ceria (Gambus/Caklempong Simulation)
+  function startBGM() {
+    if (bgmInterval) return;
+    const scale = [293.66, 329.63, 369.99, 440.00, 493.88]; // D, E, F#, A, B (Inspirasi Tradisional)
+    let step = 0;
+
+    bgmInterval = setInterval(() => {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle'; // Bunyi seakan alat petik / caklempong
+      
+      const freq = scale[step % scale.length];
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
+
+      step++;
+    }, 300);
+  }
+
+  // Struktur Gigi
+  const teethLayout = [
+    // Gigi Atas
+    {x: 260, y: 190, w: 45, h: 65, type: 'incisor'},
+    {x: 310, y: 185, w: 50, h: 70, type: 'incisor'},
+    {x: 365, y: 180, w: 35, h: 75, type: 'front'},
+    {x: 405, y: 180, w: 35, h: 75, type: 'front'},
+    {x: 445, y: 185, w: 50, h: 70, type: 'incisor'},
+    {x: 500, y: 190, w: 45, h: 65, type: 'incisor'},
+    // Gigi Bawah
+    {x: 270, y: 310, w: 45, h: 60, type: 'incisor'},
+    {x: 320, y: 315, w: 45, h: 65, type: 'incisor'},
+    {x: 370, y: 320, w: 30, h: 65, type: 'front'},
+    {x: 405, y: 320, w: 30, h: 65, type: 'front'},
+    {x: 440, y: 315, w: 45, h: 65, type: 'incisor'},
+    {x: 490, y: 310, w: 45, h: 60, type: 'incisor'}
+  ];
+
+  // Bina Kotoran (Tekstur Busa / Kapas)
+  function initDirt() {
+    dirtParticles = [];
+    teethLayout.forEach(tooth => {
+      // Hasilkan beberapa kelompok kotoran pada setiap gigi
+      for (let i = 0; i < 25; i++) {
+        dirtParticles.push({
+          x: tooth.x + Math.random() * (tooth.w - 10) + 5,
+          y: tooth.y + Math.random() * (tooth.h - 10) + 5,
+          radius: Math.random() * 8 + 6, // Tekstur kapas/busa
+          cleaned: false,
+          color: Math.random() > 0.3 ? '#f39c12' : '#7f8c8d' // Warna kuman/makanan
+        });
+      }
+    });
+    totalDirt = dirtParticles.length;
+    cleanedDirt = 0;
+    updateProgress();
+  }
+
+  // Lukis Mulut & Gigi
+  function drawMouth() {
+    // Bibir & Mulut
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.ellipse(400, 280, 190, 140, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#c0392b';
+    ctx.stroke();
+
+    // Rongga Dalam Mulut
+    ctx.fillStyle = '#78281f';
+    ctx.beginPath();
+    ctx.ellipse(400, 280, 160, 100, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lidah
+    ctx.fillStyle = '#ff7675';
+    ctx.beginPath();
+    ctx.ellipse(400, 320, 90, 45, 0, 0, Math.PI);
+    ctx.fill();
+
+    // Lukis Gigi
+    teethLayout.forEach(tooth => {
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#bdc3c7';
+      ctx.lineWidth = 3;
+      
+      // Bucu bulat untuk bentuk gigi alami
+      ctx.beginPath();
+      ctx.roundRect(tooth.x, tooth.y, tooth.w, tooth.h, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      // Bayangan Gigi untuk Kesan 3D
+      ctx.fillStyle = 'rgba(0,0,0,0.05)';
+      ctx.fillRect(tooth.x + 4, tooth.y + tooth.h - 12, tooth.w - 8, 8);
+    });
+
+    // Gusi Atas & Bawah
+    ctx.fillStyle = '#ff8a80';
+    // Gusi Atas
+    ctx.beginPath();
+    ctx.ellipse(400, 175, 165, 30, 0, 0, Math.PI);
+    ctx.fill();
+    // Gusi Bawah
+    ctx.beginPath();
+    ctx.ellipse(400, 385, 165, 30, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Lukis Kotoran Tekstur Kapas/Busa
+  function drawDirt() {
+    dirtParticles.forEach(p => {
+      if (!p.cleaned) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.85;
+        ctx.fill();
+        
+        // Tekstur Busa Kapas (Bintik Putih)
+        ctx.beginPath();
+        ctx.arc(p.x - p.radius*0.3, p.y - p.radius*0.3, p.radius*0.3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    });
+  }
+
+  // Lukis Berus Gigi Simulasi (Ikut Kursor)
+  function drawToothbrush() {
+    if (mouse.x < 0) return;
+
+    ctx.save();
+    ctx.translate(mouse.x, mouse.y);
+    ctx.rotate(-Math.PI / 4);
+
+    // Pemegang Berus (Corak Warna Ceria/Songket)
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(-15, 20, 30, 160);
+    ctx.roundRect(-15, 160, 30, 30, 10);
+
+    // Kepala Berus
+    ctx.fillStyle = '#ecf0f1';
+    ctx.fillRect(-20, -40, 40, 60);
+
+    // Bulu Berus (Busa Simulasi)
+    ctx.fillStyle = '#2980b9';
+    for (let i = -15; i <= 15; i += 10) {
+      for (let j = -35; j <= 10; j += 12) {
+        ctx.fillRect(i, j, 6, 8);
+      }
+    }
+
+    // Busa Sabun pada Berus
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.beginPath();
+    ctx.arc(0, -15, 25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Kesan Kilauan apabila Bersih
+  function addSparkle(x, y) {
+    sparkles.push({
+      x: x,
+      y: y,
+      size: Math.random() * 8 + 4,
+      alpha: 1,
+      maxLife: 20,
+      life: 0
+    });
+  }
+
+  function drawSparkles() {
+    sparkles.forEach((s, index) => {
+      ctx.save();
+      ctx.globalAlpha = s.alpha;
+      ctx.fillStyle = '#f1c40f';
+      ctx.beginPath();
+      // Bintang Kilauan
+      for (let i = 0; i < 5; i++) {
+        ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * s.size + s.x,
+                   -Math.sin((18 + i * 72) * Math.PI / 180) * s.size + s.y);
+        ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (s.size/2) + s.x,
+                   -Math.sin((54 + i * 72) * Math.PI / 180) * (s.size/2) + s.y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      s.life++;
+      s.alpha -= 0.05;
+
+      if (s.life >= s.maxLife) {
+        sparkles.splice(index, 1);
+      }
+    });
+  }
+
+  // Pengendalian Memberus Gigi
+  function checkBrushing() {
+    if (!isBrushing) return;
+
+    // Hitung pergerakan berus
+    const distMoved = Math.hypot(mouse.x - mouse.prevX, mouse.y - mouse.prevY);
+    
+    if (distMoved > 2) {
+      playSound('brush');
+      dirtParticles.forEach(p => {
+        if (!p.cleaned) {
+          const d = Math.hypot(mouse.x - p.x, mouse.y - p.y);
+          if (d < 35) { // Radius gosokan berus
+            p.cleaned = true;
+            cleanedDirt++;
+            addSparkle(p.x, p.y);
+            if (Math.random() > 0.7) playSound('sparkle');
+            updateProgress();
+          }
+        }
+      });
+    }
+  }
+
+  function updateProgress() {
+    const percent = Math.floor((cleanedDirt / totalDirt) * 100);
+    document.getElementById('progress').style.width = percent + '%';
+
+    if (percent >= 100) {
+      gameWin();
+    }
+  }
+
+  // Gelung Utama Game (Game Loop)
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawMouth();
+    drawDirt();
+    checkBrushing();
+    drawSparkles();
+    drawToothbrush();
+
+    mouse.prevX = mouse.x;
+    mouse.prevY = mouse.y;
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Event Listeners (Mouse & Touch)
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+  });
+
+  canvas.addEventListener('mousedown', () => isBrushing = true);
+  canvas.addEventListener('mouseup', () => isBrushing = false);
+
+  // Sokongan Kawalan Sentuhan Jari (Tablet / Telefon)
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    mouse.x = touch.clientX - rect.left;
+    mouse.y = touch.clientY - rect.top;
+    isBrushing = true;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', () => isBrushing = false);
+
+  // Kawalan Game
+  function startGame() {
+    initAudio();
+    startBGM();
+    document.getElementById('start-modal').style.display = 'none';
+    speakBM("Mari memberus gigi! Gosok semua kotoran sampai bersih ya!");
+    initDirt();
+  }
+
+  function gameWin() {
+    playSound('win');
+    speakBM("Tahniah! Gigi anda dah bersih, berkilat dan berseri! Senyuman yang sangat memikat!");
+    document.getElementById('win-modal').style.display = 'flex';
+  }
+
+  function resetGame() {
+    document.getElementById('win-modal').style.display = 'none';
+    speakBM("Jom gosok gigi sekali lagi!");
+    initDirt();
+  }
+
+  // Mula gelung grafik
+  gameLoop();
+</script>
+
+</body>
+</html>
